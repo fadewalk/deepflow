@@ -2,6 +2,8 @@
 name: kubernetes
 # 云平台类型
 type: kubernetes
+# cluster id [选填]
+cluster_id:
 config:
   # 所属区域标识
   region_uuid: ffffffff-ffff-ffff-ffff-ffffffffffff

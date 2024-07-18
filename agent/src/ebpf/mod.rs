@@ -98,6 +98,8 @@ pub const FEATURE_UPROBE_GOLANG_SYMBOL: c_int = 0;
 pub const FEATURE_UPROBE_OPENSSL: c_int = 1;
 #[allow(dead_code)]
 pub const FEATURE_UPROBE_GOLANG: c_int = 2;
+#[allow(dead_code)]
+pub const FEATURE_UPROBE_JAVA: c_int = 3;
 
 //L7层协议是否需要重新核实
 #[allow(dead_code)]
@@ -172,9 +174,14 @@ pub const EVENT_TYPE_PROC_EXIT: u32 = 1 << 6;
 pub const PROFILER_TYPE_UNKNOWN: u8 = 0;
 #[allow(dead_code)]
 pub const PROFILER_TYPE_ONCPU: u8 = 1;
-#[allow(dead_code)]
-#[cfg(feature = "off_cpu")]
-pub const PROFILER_TYPE_OFFCPU: u8 = 2;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "extended_profile")] {
+        #[allow(dead_code)]
+        pub const PROFILER_TYPE_OFFCPU: u8 = 2;
+        #[allow(dead_code)]
+        pub const PROFILER_TYPE_MEMORY: u8 = 3;
+    }
+}
 
 //Process exec/exit events
 #[repr(C)]
@@ -690,7 +697,7 @@ extern "C" {
     pub fn disable_oncpu_profiler() -> c_int;
 
     cfg_if::cfg_if! {
-        if #[cfg(feature = "off_cpu")] {
+        if #[cfg(feature = "extended_profile")] {
             pub fn set_offcpu_profiler_regex(pattern: *const c_char) -> c_int;
 
             pub fn enable_offcpu_profiler() -> c_int;
@@ -702,6 +709,12 @@ extern "C" {
             pub fn set_offcpu_minblock_time(
                 block_time: c_uint,
             ) -> c_int;
+
+            pub fn set_memory_profiler_regex(pattern: *const c_char) -> c_int;
+
+            pub fn enable_memory_profiler() -> c_int;
+
+            pub fn disable_memory_profiler() -> c_int;
         }
     }
 }

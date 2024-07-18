@@ -123,6 +123,8 @@ enum cfg_feature_idx {
 	FEATURE_UPROBE_OPENSSL,
 	// golang uprobe
 	FEATURE_UPROBE_GOLANG,
+	// java uprobe
+	FEATURE_UPROBE_JAVA,
 	FEATURE_MAX,
 };
 
@@ -624,4 +626,30 @@ int enable_tracer_reader_work(const char *name, int idx,
  * @return 0 on success, non-zero on error
  */
 int enable_ebpf_seg_reasm_protocol(int protocol);
+
+// Lower version kernels do not support hooking so files in containers
+bool kernel_version_check(void);
+bool process_probing_check(int pid);
+
+struct process_create_event {
+	struct list_head list;
+	int pid;
+	uint32_t expire_time;
+	struct bpf_tracer *tracer;
+};
+
+typedef struct {
+	struct list_head head;
+	pthread_mutex_t m;
+} proc_event_list_t;
+
+void add_event_to_proc_list(proc_event_list_t *list, struct bpf_tracer *tracer, int pid);
+void remove_event(proc_event_list_t *list, struct process_create_event *event);
+struct process_create_event *get_first_event(proc_event_list_t *list);
+
+char *get_so_path_by_pid_and_name(int pid, const char *so_name);
+int add_probe_sym_to_tracer_probes(int pid, const char *path,
+					  struct tracer_probes_conf *conf,
+					  struct symbol symbols[], size_t n_symbols);
+
 #endif /* DF_USER_TRACER_H */

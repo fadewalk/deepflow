@@ -472,16 +472,17 @@ impl EbpfCollector {
         }
     }
 
-    #[cfg(not(feature = "off_cpu"))]
+    #[cfg(not(feature = "extended_profile"))]
     fn get_event_type(_: u8) -> i32 {
         metric::ProfileEventType::EbpfOnCpu.into()
     }
 
-    #[cfg(feature = "off_cpu")]
+    #[cfg(feature = "extended_profile")]
     fn get_event_type(profiler_type: u8) -> i32 {
         match profiler_type {
             ebpf::PROFILER_TYPE_ONCPU => metric::ProfileEventType::EbpfOnCpu.into(),
             ebpf::PROFILER_TYPE_OFFCPU => metric::ProfileEventType::EbpfOffCpu.into(),
+            ebpf::PROFILER_TYPE_MEMORY => metric::ProfileEventType::EbpfMemAlloc.into(),
             _ => {
                 warn!(
                     "ebpf profile data with invalid event type: {}",
@@ -703,7 +704,7 @@ impl EbpfCollector {
             let off_cpu = &ebpf_conf.off_cpu_profile;
 
             let profiler_enabled =
-                !on_cpu.disabled || (cfg!(feature = "off_cpu") && !off_cpu.disabled);
+                !on_cpu.disabled || (cfg!(feature = "extended_profile") && !off_cpu.disabled);
             if profiler_enabled {
                 if !on_cpu.disabled {
                     ebpf::enable_oncpu_profiler();
@@ -711,7 +712,7 @@ impl EbpfCollector {
                     ebpf::disable_oncpu_profiler();
                 }
 
-                #[cfg(feature = "off_cpu")]
+                #[cfg(feature = "extended_profile")]
                 if !off_cpu.disabled {
                     ebpf::enable_offcpu_profiler();
                 } else {
@@ -741,7 +742,7 @@ impl EbpfCollector {
                     ebpf::set_profiler_cpu_aggregation(on_cpu.cpu as i32);
                 }
 
-                #[cfg(feature = "off_cpu")]
+                #[cfg(feature = "extended_profile")]
                 if !off_cpu.disabled {
                     ebpf::set_offcpu_profiler_regex(
                         CString::new(off_cpu.regex.as_bytes())

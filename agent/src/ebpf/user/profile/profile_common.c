@@ -623,13 +623,15 @@ static void set_stack_trace_msg(struct profiler_context *ctx,
 	}
 
 	msg->time_stamp = gettime(CLOCK_REALTIME, TIME_TYPE_NAN);
-	if (ctx->use_delta_time) {
+	if (ctx->type == PROFILER_TYPE_MEMORY) {
+		msg->count = v->ext_data.memory.size;
+	} else if (ctx->use_delta_time) {
 		// If sampling is used
 		if (ctx->sample_period > 0) {
 			msg->count = ctx->sample_period / 1000;
 		} else {
 			// Using microseconds for storage.
-			msg->count = v->duration_ns / 1000;
+			msg->count = v->ext_data.off_cpu.duration_ns / 1000;
 		}
 	} else {
 		msg->count = 1;
@@ -860,7 +862,10 @@ static void aggregate_stack_traces(struct profiler_context *ctx,
 		     (stack_trace_msg_hash_kv *) & kv) == 0) {
 			__sync_fetch_and_add(&msg_hash->hit_hash_count, 1);
 			if (ctx->use_delta_time) {
-				if (ctx->sample_period > 0) {
+				if (ctx->type == PROFILER_TYPE_MEMORY) {
+					((stack_trace_msg_t *) kv.
+					 msg_ptr)->count += v->ext_data.memory.size;
+				} else if (ctx->sample_period > 0) {
 					((stack_trace_msg_t *) kv.
 					 msg_ptr)->count +=
 		   				(ctx->sample_period / 1000);
@@ -868,9 +873,8 @@ static void aggregate_stack_traces(struct profiler_context *ctx,
 					// Using microseconds for storage.
 					((stack_trace_msg_t *) kv.
 					 msg_ptr)->count +=
-		 				(v->duration_ns / 1000);
+		 				(v->ext_data.off_cpu.duration_ns / 1000);
 				}
-
 			} else {
 				((stack_trace_msg_t *) kv.msg_ptr)->count++;
 			}

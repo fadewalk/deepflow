@@ -17,7 +17,7 @@
 #ifndef DF_USER_PERF_PROFILER_H
 #define DF_USER_PERF_PROFILER_H
 #define CP_PROFILE_SET_PROBES(T)
-#include "extended/extended.h"
+#include "../extended/extended.h"
 #include "../bihash_24_8.h"
 #include "../../kernel/include/perf_profiler.h"
 
@@ -86,6 +86,8 @@ typedef struct {
 enum {
 	PROFILER_TYPE_UNKNOWN,
 	PROFILER_TYPE_ONCPU,
+	PROFILER_TYPE_OFFCPU,
+	PROFILER_TYPE_MEMORY,
 	PROFILER_TYPE_NUM,
 };
 
@@ -143,7 +145,7 @@ typedef struct {
 	u32 u_stack_id;
 	u32 k_stack_id;
 	u32 cpu;
-	u32 count;
+	u64 count;
 	u8 comm[TASK_COMM_LEN];
 	u8 process_name[TASK_COMM_LEN];
 	u8 container_id[CONTAINER_ID_SIZE];

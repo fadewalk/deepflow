@@ -23,6 +23,8 @@
 #define UNIX_PATH_MAX 108
 #define JAVA_ADDR_STR_SIZE 13
 
+#define DF_JAVA_ATTACH_CMD "/usr/bin/deepflow-jattach"
+
 /*
  * The address range of the 64-bit user space is from 0x0000000000000000
  * to 0x00007fffffffffff, which effectively uses only 48 bits. We use 13

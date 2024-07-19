@@ -25,7 +25,6 @@
 #include <sys/epoll.h>
 #include <dlfcn.h>
 #include <dirent.h>
-
 #include "../../config.h"
 #include "../../common.h"
 #include "../../log.h"
@@ -45,94 +44,9 @@ symbol_collect_thread_pool_t *g_collect_pool;
  * handling the data sent by the corresponding JVM.
  */
 static __thread java_unload_addr_str_t *unload_addrs;
-
-static char agent_lib_so_path[MAX_PATH_LENGTH];
 extern int jattach(int pid, int argc, char **argv);
 static int create_symbol_collect_task(pid_t pid, options_t * opts,
 				      bool is_same_mntns);
-
-static int agent_so_lib_copy(const char *src, const char *dst, int uid, int gid)
-{
-	if (access(src, F_OK)) {
-		ebpf_warning(JAVA_LOG_TAG "Fun %s src file '%s' not exist.\n",
-			     __func__, src);
-		return ETR_NOTEXIST;
-	}
-
-	if (copy_file(src, dst)) {
-		return ETR_INVAL;
-	}
-
-	if (chown(dst, uid, gid) != 0) {
-		ebpf_warning(JAVA_LOG_TAG
-			     "Failed to change ownership and group. file '%s'\n",
-			     dst);
-		return ETR_INVAL;
-	}
-
-	return ETR_OK;
-}
-
-static int copy_agent_libs_into_target_ns(pid_t target_pid, int target_uid,
-					  int target_gid)
-{
-
-	/*
-	 * Call this function only when the target process is in a subordinate
-	 * namespace. Here, we copy the agent.so to a temporary path within t-
-	 * he mounted namespace. We also change the file ownership so that the
-	 * target process sees itself as the owner of the file (this is neces-
-	 * sary because some versions of Java might reject proxy injection
-	 * otherwise).
-	 */
-	int ret;
-	char copy_target_path[MAX_PATH_LENGTH];
-	int len = snprintf(copy_target_path, sizeof(copy_target_path),
-			   TARGET_NS_STORAGE_PATH, target_pid);
-	if (access(copy_target_path, F_OK)) {
-		/*
-		 * The purpose of umask(0); is to set the current process's file
-		 * creation mask (umask) to 0, which means that no permission
-		 * bits will be cleared when creating a file or directory. Files
-		 * and directories will have the permission bits specified at the
-		 * time of creation.
-		 */
-		umask(0);
-
-		if (mkdir(copy_target_path, 0777) != 0) {
-			ebpf_warning(JAVA_LOG_TAG
-				     "Fun %s cannot mkdir() '%s'\n", __func__,
-				     copy_target_path);
-
-			return ETR_NOTEXIST;
-		}
-	}
-
-	snprintf(copy_target_path + len, sizeof(copy_target_path) - len,
-		 "/%s", AGENT_LIB_NAME);
-	if ((ret =
-	     agent_so_lib_copy(AGENT_LIB_SRC_PATH,
-			       copy_target_path, target_uid,
-			       target_gid)) != ETR_OK) {
-		ebpf_warning(JAVA_LOG_TAG "cp '%s' to '%s' failed.\n",
-			     AGENT_LIB_SRC_PATH, copy_target_path);
-		return ret;
-	}
-
-	snprintf(copy_target_path + len, sizeof(copy_target_path) - len,
-		 "/%s", AGENT_MUSL_LIB_NAME);
-
-	if ((ret =
-	     agent_so_lib_copy(AGENT_MUSL_LIB_SRC_PATH,
-			       copy_target_path, target_uid,
-			       target_gid)) != ETR_OK) {
-		ebpf_warning(JAVA_LOG_TAG "cp '%s' to '%s' failed.\n",
-			     AGENT_MUSL_LIB_SRC_PATH, copy_target_path);
-		return ret;
-	}
-
-	return ETR_OK;
-}
 
 bool test_dl_open(const char *so_lib_file_path)
 {
@@ -185,74 +99,6 @@ bool test_dl_open(const char *so_lib_file_path)
 	ebpf_info(JAVA_LOG_TAG "%s: Success for %s.\n", __func__,
 		  so_lib_file_path);
 	return true;
-}
-
-static void select_suitable_agent_lib(pid_t pid, bool is_same_mntns)
-{
-	/* Enter pid & mount namespace for target pid,
-	 * and use dlopen() in that namespace.*/
-	int pid_self_fd, mnt_self_fd;
-	df_enter_ns(pid, "pid", &pid_self_fd);
-	df_enter_ns(pid, "mnt", &mnt_self_fd);
-
-	agent_lib_so_path[0] = '\0';
-	char test_path[PERF_PATH_SZ];
-	if (!is_same_mntns)
-		snprintf(test_path, sizeof(test_path), "%s",
-			 AGENT_LIB_TARGET_PATH);
-	else
-		snprintf(test_path, sizeof(test_path), "%s",
-			 AGENT_LIB_SRC_PATH);
-
-	if (test_dl_open(test_path)) {
-		snprintf(agent_lib_so_path, MAX_PATH_LENGTH, "%s", test_path);
-		ebpf_info(JAVA_LOG_TAG
-			  "Func %s target PID %d test %s, success.\n",
-			  __func__, pid, test_path);
-		goto found;
-	}
-
-	if (!is_same_mntns)
-		snprintf(test_path, sizeof(test_path), "%s",
-			 AGENT_MUSL_LIB_TARGET_PATH);
-	else
-		snprintf(test_path, sizeof(test_path), "%s",
-			 AGENT_MUSL_LIB_SRC_PATH);
-
-	if (test_dl_open(test_path)) {
-		snprintf(agent_lib_so_path, MAX_PATH_LENGTH, "%s", test_path);
-		ebpf_info(JAVA_LOG_TAG
-			  "Func %s target PID %d test %s, success.\n",
-			  __func__, pid, test_path);
-		goto found;
-	}
-
-	ebpf_warning(JAVA_LOG_TAG "%s test agent so libs, failure.", __func__);
-
-found:
-
-	if (!is_same_mntns) {
-		if (strcmp(agent_lib_so_path, AGENT_LIB_TARGET_PATH) == 0) {
-			clear_target_ns_tmp_file(AGENT_MUSL_LIB_TARGET_PATH);
-		} else {
-			clear_target_ns_tmp_file(AGENT_LIB_TARGET_PATH);
-		}
-	}
-
-	df_exit_ns(pid_self_fd);
-	df_exit_ns(mnt_self_fd);
-}
-
-static int attach(pid_t pid, char *opts)
-{
-	char *argv[] = { "load", agent_lib_so_path, "true", opts };
-	int argc = sizeof(argv) / sizeof(argv[0]);
-	int ret = jattach(pid, argc, (char **)argv);
-	ebpf_info(JAVA_LOG_TAG
-		  "jattach pid %d argv: \"load %s true\" return %d\n", pid,
-		  agent_lib_so_path, ret);
-
-	return ret;
 }
 
 void clear_target_ns_tmp_file(const char *target_path)
@@ -450,18 +296,6 @@ int symbol_collect_same_namespace(pid_t pid, options_t * opts)
 {
 	// Clear '/tmp/' unix domain sockets files.
 	if (check_and_clear_unix_socket_files(pid, false) == -1)
-		return -1;
-
-	/*
-	 * In containers, different libc implementations may be used to compile agent
-	 * libraries, primarily two types: glibc and musl. We must provide both vers-
-	 * ions of the agent library. So, which one should we choose? To determine t-
-	 * his, we need to enter the target process's namespace and test each library
-	 * until we find one that can be successfully loaded using dlopen.
-	 */
-	select_suitable_agent_lib(pid, true);
-
-	if (strlen(agent_lib_so_path) == 0)
 		return -1;
 
 	return create_symbol_collect_task(pid, opts, true);
@@ -1082,13 +916,14 @@ static int create_symbol_collect_task(pid_t pid, options_t * opts,
 		goto cleanup;
 	}
 
-	snprintf(buffer, PERF_PATH_SZ * 2,
-		 JVM_AGENT_SYMS_SOCKET_PATH_FMT ","
-		 JVM_AGENT_LOG_SOCKET_PATH_FMT, pid, pid);
-
-	/* Invoke the jattach (https://github.com/apangin/jattach) to inject the
-	 * library as a JVMTI agent.*/
-	ret = attach(pid, buffer);
+	snprintf(buffer, sizeof(buffer), "%d", pid);
+	char ret_buf[1024];
+	memset(ret_buf, 0, sizeof(ret_buf));
+	printf("exec... start\n");
+	ret =
+	    exec_command(DF_JAVA_ATTACH_CMD, buffer, ret_buf, sizeof(ret_buf));
+	printf("exec... done\n");
+	ebpf_info(JAVA_LOG_TAG "*ret %d* %s", ret, ret_buf);
 	task->args.replay_done = true;
 	task->args.attach_ret = ret;
 	CLIB_MEMORY_STORE_BARRIER();
@@ -1135,61 +970,12 @@ cleanup:
 
 int symbol_collect_different_namespace(pid_t pid, options_t * opts)
 {
-	int uid, gid;
-	if (get_target_uid_and_gid(pid, &uid, &gid)) {
-		return -1;
-	}
-
-	/* if pid == target_ns_pid, run in same namespace */
-	int target_ns_pid = get_nspid(pid);
-	if (target_ns_pid < 0) {
-		return -1;
-	}
-
 	/*
 	 * Delete the files on the target file system if they
 	 * are not on the same mount point.
 	 */
 	if (check_and_clear_target_ns(pid, false) == -1)
 		return -1;
-
-	/*
-	 * Here, the original method of determination (based on whether the net
-	 * namespace is the same) is modified to use the mnt namespace for comparison,
-	 * thus avoiding situations where both the net namespace and pid namespace are
-	 * the same but the file system is different.
-	 */
-
-	/*
-	 * If the target Java process is in a subordinate namespace, copy the
-	 * 'agent.so' into the artifacts path (in /tmp) inside of that namespace
-	 * (for visibility to the target process).
-	 */
-	ebpf_info(JAVA_LOG_TAG "[PID %d] copy agent so library ...\n", pid);
-	if (copy_agent_libs_into_target_ns(pid, uid, gid)) {
-		ebpf_warning(JAVA_LOG_TAG
-			     "[PID %d] copy agent os library failed.\n", pid);
-		check_and_clear_target_ns(pid, false);
-		return -1;
-	}
-	ebpf_info(JAVA_LOG_TAG "[PID %d] copy agent so library success.\n",
-		  pid);
-
-	/*
-	 * In containers, different libc implementations may be used to compile agent
-	 * libraries, primarily two types: glibc and musl. We must provide both vers-
-	 * ions of the agent library. So, which one should we choose? To determine t-
-	 * his, we need to enter the target process's namespace and test each library
-	 * until we find one that can be successfully loaded using dlopen.
-	 */
-	select_suitable_agent_lib(pid, false);
-
-	if (strlen(agent_lib_so_path) == 0) {
-		ebpf_warning(JAVA_LOG_TAG
-			     "[PID %d] agent_lib_so_path is NULL.\n", pid);
-		check_and_clear_target_ns(pid, false);
-		return -1;
-	}
 
 	return create_symbol_collect_task(pid, opts, false);
 }
@@ -1287,7 +1073,7 @@ int update_java_symbol_table(pid_t pid)
 
 	u64 start_time = get_process_starttime_and_comm(pid, NULL, 0);
 	if (start_time == 0) {
-		ebpf_warning("The Java process(PID: %d) no longer exists.\n",
+		ebpf_warning("The process with PID %d no longer exists.\n",
 			     pid);
 		task->args.attach_ret = -1;	// Force the thread to exit the task it is executing. 
 		return -1;
@@ -1295,13 +1081,262 @@ int update_java_symbol_table(pid_t pid)
 	// The task is stale and needs to be cleaned up.
 	if (task->pid_start_time != start_time) {
 		task->args.attach_ret = -1;
-		return start_java_symbol_collection(pid, opts);
+		ebpf_warning("The task for the process with PID %d"
+			     " is invalid and needs to be recreated.\n", pid);
+		return -1;
 	}
 
 	return 0;
 }
 
 #ifdef JAVA_AGENT_ATTACH_TOOL
+static char agent_lib_so_path[MAX_PATH_LENGTH];
+static int agent_so_lib_copy(const char *src, const char *dst, int uid, int gid)
+{
+	if (access(src, F_OK)) {
+		ebpf_warning(JAVA_LOG_TAG "Fun %s src file '%s' not exist.\n",
+			     __func__, src);
+		return ETR_NOTEXIST;
+	}
+
+	if (copy_file(src, dst)) {
+		return ETR_INVAL;
+	}
+
+	if (chown(dst, uid, gid) != 0) {
+		ebpf_warning(JAVA_LOG_TAG
+			     "Failed to change ownership and group. file '%s'\n",
+			     dst);
+		return ETR_INVAL;
+	}
+
+	return ETR_OK;
+}
+
+static int copy_agent_libs_into_target_ns(pid_t target_pid, int target_uid,
+					  int target_gid)
+{
+
+	/*
+	 * Call this function only when the target process is in a subordinate
+	 * namespace. Here, we copy the agent.so to a temporary path within t-
+	 * he mounted namespace. We also change the file ownership so that the
+	 * target process sees itself as the owner of the file (this is neces-
+	 * sary because some versions of Java might reject proxy injection
+	 * otherwise).
+	 */
+	int ret;
+	char copy_target_path[MAX_PATH_LENGTH];
+	int len = snprintf(copy_target_path, sizeof(copy_target_path),
+			   TARGET_NS_STORAGE_PATH, target_pid);
+	if (access(copy_target_path, F_OK)) {
+		/*
+		 * The purpose of umask(0); is to set the current process's file
+		 * creation mask (umask) to 0, which means that no permission
+		 * bits will be cleared when creating a file or directory. Files
+		 * and directories will have the permission bits specified at the
+		 * time of creation.
+		 */
+		umask(0);
+
+		if (mkdir(copy_target_path, 0777) != 0) {
+			ebpf_warning(JAVA_LOG_TAG
+				     "Fun %s cannot mkdir() '%s'\n", __func__,
+				     copy_target_path);
+
+			return ETR_NOTEXIST;
+		}
+	}
+
+	snprintf(copy_target_path + len, sizeof(copy_target_path) - len,
+		 "/%s", AGENT_LIB_NAME);
+	if ((ret =
+	     agent_so_lib_copy(AGENT_LIB_SRC_PATH,
+			       copy_target_path, target_uid,
+			       target_gid)) != ETR_OK) {
+		ebpf_warning(JAVA_LOG_TAG "cp '%s' to '%s' failed.\n",
+			     AGENT_LIB_SRC_PATH, copy_target_path);
+		return ret;
+	}
+
+	snprintf(copy_target_path + len, sizeof(copy_target_path) - len,
+		 "/%s", AGENT_MUSL_LIB_NAME);
+
+	if ((ret =
+	     agent_so_lib_copy(AGENT_MUSL_LIB_SRC_PATH,
+			       copy_target_path, target_uid,
+			       target_gid)) != ETR_OK) {
+		ebpf_warning(JAVA_LOG_TAG "cp '%s' to '%s' failed.\n",
+			     AGENT_MUSL_LIB_SRC_PATH, copy_target_path);
+		return ret;
+	}
+
+	return ETR_OK;
+}
+
+static void select_suitable_agent_lib(pid_t pid, bool is_same_mntns)
+{
+	/* Enter pid & mount namespace for target pid,
+	 * and use dlopen() in that namespace.*/
+	int pid_self_fd, mnt_self_fd;
+	df_enter_ns(pid, "pid", &pid_self_fd);
+	df_enter_ns(pid, "mnt", &mnt_self_fd);
+
+	agent_lib_so_path[0] = '\0';
+	char test_path[PERF_PATH_SZ];
+	if (!is_same_mntns)
+		snprintf(test_path, sizeof(test_path), "%s",
+			 AGENT_LIB_TARGET_PATH);
+	else
+		snprintf(test_path, sizeof(test_path), "%s",
+			 AGENT_LIB_SRC_PATH);
+
+	if (test_dl_open(test_path)) {
+		snprintf(agent_lib_so_path, MAX_PATH_LENGTH, "%s", test_path);
+		ebpf_info(JAVA_LOG_TAG
+			  "Func %s target PID %d test %s, success.\n",
+			  __func__, pid, test_path);
+		goto found;
+	}
+
+	if (!is_same_mntns)
+		snprintf(test_path, sizeof(test_path), "%s",
+			 AGENT_MUSL_LIB_TARGET_PATH);
+	else
+		snprintf(test_path, sizeof(test_path), "%s",
+			 AGENT_MUSL_LIB_SRC_PATH);
+
+	if (test_dl_open(test_path)) {
+		snprintf(agent_lib_so_path, MAX_PATH_LENGTH, "%s", test_path);
+		ebpf_info(JAVA_LOG_TAG
+			  "Func %s target PID %d test %s, success.\n",
+			  __func__, pid, test_path);
+		goto found;
+	}
+
+	ebpf_warning(JAVA_LOG_TAG "%s test agent so libs, failure.", __func__);
+
+found:
+
+	if (!is_same_mntns) {
+		if (strcmp(agent_lib_so_path, AGENT_LIB_TARGET_PATH) == 0) {
+			clear_target_ns_tmp_file(AGENT_MUSL_LIB_TARGET_PATH);
+		} else {
+			clear_target_ns_tmp_file(AGENT_LIB_TARGET_PATH);
+		}
+	}
+
+	df_exit_ns(pid_self_fd);
+	df_exit_ns(mnt_self_fd);
+}
+
+static int prepare_for_attach_same_ns(pid_t pid)
+{
+	/*
+	 * In containers, different libc implementations may be used to compile agent
+	 * libraries, primarily two types: glibc and musl. We must provide both vers-
+	 * ions of the agent library. So, which one should we choose? To determine t-
+	 * his, we need to enter the target process's namespace and test each library
+	 * until we find one that can be successfully loaded using dlopen.
+	 */
+	select_suitable_agent_lib(pid, true);
+
+	if (strlen(agent_lib_so_path) == 0)
+		return -1;
+	return 0;
+}
+
+static int prepare_for_attach_different_ns(pid_t pid)
+{
+	int uid, gid;
+	if (get_target_uid_and_gid(pid, &uid, &gid)) {
+		return -1;
+	}
+
+	/* if pid == target_ns_pid, run in same namespace */
+	int target_ns_pid = get_nspid(pid);
+	if (target_ns_pid < 0) {
+		return -1;
+	}
+
+	/*
+	 * Here, the original method of determination (based on whether the net
+	 * namespace is the same) is modified to use the mnt namespace for comparison,
+	 * thus avoiding situations where both the net namespace and pid namespace are
+	 * the same but the file system is different.
+	 */
+
+	/*
+	 * If the target Java process is in a subordinate namespace, copy the
+	 * 'agent.so' into the artifacts path (in /tmp) inside of that namespace
+	 * (for visibility to the target process).
+	 */
+	ebpf_info(JAVA_LOG_TAG "[PID %d] copy agent so library ...\n", pid);
+	if (copy_agent_libs_into_target_ns(pid, uid, gid)) {
+		ebpf_warning(JAVA_LOG_TAG
+			     "[PID %d] copy agent os library failed.\n", pid);
+		check_and_clear_target_ns(pid, false);
+		return -1;
+	}
+	ebpf_info(JAVA_LOG_TAG "[PID %d] copy agent so library success.\n",
+		  pid);
+
+	/*
+	 * In containers, different libc implementations may be used to compile agent
+	 * libraries, primarily two types: glibc and musl. We must provide both vers-
+	 * ions of the agent library. So, which one should we choose? To determine t-
+	 * his, we need to enter the target process's namespace and test each library
+	 * until we find one that can be successfully loaded using dlopen.
+	 */
+	select_suitable_agent_lib(pid, false);
+
+	if (strlen(agent_lib_so_path) == 0) {
+		ebpf_warning(JAVA_LOG_TAG
+			     "[PID %d] agent_lib_so_path is NULL.\n", pid);
+		check_and_clear_target_ns(pid, false);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int attach(pid_t pid, char *opts)
+{
+	char *argv[] = { "load", agent_lib_so_path, "true", opts };
+	int argc = sizeof(argv) / sizeof(argv[0]);
+	int ret = jattach(pid, argc, (char **)argv);
+	ebpf_info(JAVA_LOG_TAG
+		  "jattach pid %d argv: \"load %s true\" return %d\n", pid,
+		  agent_lib_so_path, ret);
+
+	return ret;
+}
+
+int java_attach(pid_t pid)
+{
+	int ret = -1;
+	bool is_same_mnt = is_same_mntns(pid);
+	if (is_same_mnt) {
+		ret = prepare_for_attach_same_ns(pid);
+	} else {
+		ret = prepare_for_attach_different_ns(pid);
+	}
+
+	if (ret < 0)
+		return -1;
+
+	char buffer[PERF_PATH_SZ * 2];
+	snprintf(buffer, sizeof(buffer),
+		 JVM_AGENT_SYMS_SOCKET_PATH_FMT ","
+		 JVM_AGENT_LOG_SOCKET_PATH_FMT, pid, pid);
+
+	/* Invoke the jattach (https://github.com/apangin/jattach) to inject the
+	 * library as a JVMTI agent.*/
+	return attach(pid, buffer);
+
+	/* Resource cleanup is performed in the thread executing 'deepflow-jattach' */
+}
+
 /*
  * Command-line execution, for example:
  * cp ./df_java_agent_v2.so /tmp/
@@ -1316,9 +1351,6 @@ int main(int argc, char **argv)
 
 	log_to_stdout = true;
 	int pid = atoi(argv[1]);
-	update_java_symbol_table(pid);
-	for (;;)
-		sleep(1);
-	return 0;
+	return java_attach(pid);
 }
 #endif /* JAVA_AGENT_ATTACH_TOOL */

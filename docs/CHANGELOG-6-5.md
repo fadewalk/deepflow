@@ -7,6 +7,7 @@
 * feat: CK’s username and password support the use of special characters [#7229](https://github.com/deepflowio/deepflow/pull/7119)
 
 #### Bug Fix
+* fix: the policy does not check memory in analyzer mode [#8551](https://github.com/deepflowio/deepflow/pull/8551) by [yuanchaoa](https://github.com/yuanchaoa)
 * fix: process resource api does not response sub_domain field [#7448](https://github.com/deepflowio/deepflow/pull/7448) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * fix: Fix the problem of duplicate fields in select [#7436](https://github.com/deepflowio/deepflow/pull/7436) by [xiaochaoren1](https://github.com/xiaochaoren1)
 * fix: recorder reports wrong sub_domain infomation in domain logs [#7435](https://github.com/deepflowio/deepflow/pull/7435) by [ZhengYa-0110](https://github.com/ZhengYa-0110)

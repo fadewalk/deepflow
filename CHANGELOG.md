@@ -8,6 +8,8 @@
 ### <a id="main"></a>DeepFlow release main
 
 #### Bug Fix
+* fix: errors occurred when modifying some agent group configuration [#8602](https://github.com/deepflowio/deepflow/pull/8602) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
+* fix:  pcap,l4_packet, spantrace data exception [#8594](https://github.com/deepflowio/deepflow/pull/8594) by [lzf575](https://github.com/lzf575)
 * fix: panic when prepare write failed [#8523](https://github.com/deepflowio/deepflow/pull/8523) by [lzf575](https://github.com/lzf575)
 * fix: panic when app service tag write failed [#8521](https://github.com/deepflowio/deepflow/pull/8521) by [lzf575](https://github.com/lzf575)
 * fix: Python uprobe not registered for symbols in main executable [#8515](https://github.com/deepflowio/deepflow/pull/8515) by [rvql](https://github.com/rvql)
@@ -241,6 +243,7 @@
 * Fix prometheus data cannot be labeled with universal tags，if slow-decoder is used. [#7100](https://github.com/deepflowio/deepflow/pull/7100)
 
 #### NEW FEATURE
+* feature: adds index to some tables [#8589](https://github.com/deepflowio/deepflow/pull/8589) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feature: supports agent cmd api using agent.proto [#8513](https://github.com/deepflowio/deepflow/pull/8513) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feat: the role field adds the values local and rest [#8474](https://github.com/deepflowio/deepflow/pull/8474) by [lzf575](https://github.com/lzf575)
 * feat: agent - eBPF Support python unwind [#8407](https://github.com/deepflowio/deepflow/pull/8407) by [rvql](https://github.com/rvql)
@@ -486,6 +489,7 @@
 * feat: server directly reports metrics of load1_by_cpu_num that can be used for alert [#7088](https://github.com/deepflowio/deepflow/pull/7088) by [lzf575](https://github.com/lzf575)
 
 #### Refactoring
+* refactor: Remove legacy agent config [#8586](https://github.com/deepflowio/deepflow/pull/8586) by [rvql](https://github.com/rvql)
 * refactor: modify log of configuration changes [#8258](https://github.com/deepflowio/deepflow/pull/8258) by [yuanchaoa](https://github.com/yuanchaoa)
 * refactor: agent workspace dependencies [#8208](https://github.com/deepflowio/deepflow/pull/8208) by [TomatoMr](https://github.com/TomatoMr)
 * refactor: agent is compatibles with configuration and interfaces of both old and new versions [#8084](https://github.com/deepflowio/deepflow/pull/8084) by [TomatoMr](https://github.com/TomatoMr)

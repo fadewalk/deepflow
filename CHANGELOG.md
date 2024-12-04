@@ -8,6 +8,9 @@
 ### <a id="main"></a>DeepFlow release main
 
 #### Bug Fix
+* fix: Agent config change TODOs vol.3 [#8616](https://github.com/deepflowio/deepflow/pull/8616) by [rvql](https://github.com/rvql)
+* fix: Agent config change TODOs vol.2 [#8604](https://github.com/deepflowio/deepflow/pull/8604) by [rvql](https://github.com/rvql)
+* fix: bpf does not take effect in analyzer mode [#8603](https://github.com/deepflowio/deepflow/pull/8603) by [yuanchaoa](https://github.com/yuanchaoa)
 * fix: panic when prepare write failed [#8523](https://github.com/deepflowio/deepflow/pull/8523) by [lzf575](https://github.com/lzf575)
 * fix: panic when app service tag write failed [#8521](https://github.com/deepflowio/deepflow/pull/8521) by [lzf575](https://github.com/lzf575)
 * fix: Python uprobe not registered for symbols in main executable [#8515](https://github.com/deepflowio/deepflow/pull/8515) by [rvql](https://github.com/rvql)
@@ -241,6 +244,7 @@
 * Fix prometheus data cannot be labeled with universal tags，if slow-decoder is used. [#7100](https://github.com/deepflowio/deepflow/pull/7100)
 
 #### NEW FEATURE
+* feat: supports creating 1h, 1d aggregate data source when using ByConity [#8614](https://github.com/deepflowio/deepflow/pull/8614) by [lzf575](https://github.com/lzf575)
 * feature: supports agent cmd api using agent.proto [#8513](https://github.com/deepflowio/deepflow/pull/8513) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feat: the role field adds the values local and rest [#8474](https://github.com/deepflowio/deepflow/pull/8474) by [lzf575](https://github.com/lzf575)
 * feat: agent - eBPF Support python unwind [#8407](https://github.com/deepflowio/deepflow/pull/8407) by [rvql](https://github.com/rvql)

@@ -8,6 +8,9 @@
 ### <a id="main"></a>DeepFlow release main
 
 #### Bug Fix
+* fix: change proc socket sync interval config name and default value [#8658](https://github.com/deepflowio/deepflow/pull/8658) by [rvql](https://github.com/rvql)
+* fix: agent group configuration api response unexcepted value [#8647](https://github.com/deepflowio/deepflow/pull/8647) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
+* fix: add alarm_label table [#8642](https://github.com/deepflowio/deepflow/pull/8642) by [SongZhen0704](https://github.com/SongZhen0704)
 * fix: panic when prepare write failed [#8523](https://github.com/deepflowio/deepflow/pull/8523) by [lzf575](https://github.com/lzf575)
 * fix: panic when app service tag write failed [#8521](https://github.com/deepflowio/deepflow/pull/8521) by [lzf575](https://github.com/lzf575)
 * fix: Python uprobe not registered for symbols in main executable [#8515](https://github.com/deepflowio/deepflow/pull/8515) by [rvql](https://github.com/rvql)
@@ -241,6 +244,9 @@
 * Fix prometheus data cannot be labeled with universal tags，if slow-decoder is used. [#7100](https://github.com/deepflowio/deepflow/pull/7100)
 
 #### NEW FEATURE
+* feat: sender add compress flag [#8639](https://github.com/deepflowio/deepflow/pull/8639) by [taloric](https://github.com/taloric)
+* feat: adds resource synchronization delay alarms [#8612](https://github.com/deepflowio/deepflow/pull/8612) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
+* feat: add resource association abnormal alarm [#8585](https://github.com/deepflowio/deepflow/pull/8585) by [xiaochaoren1](https://github.com/xiaochaoren1)
 * feature: supports agent cmd api using agent.proto [#8513](https://github.com/deepflowio/deepflow/pull/8513) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feat: the role field adds the values local and rest [#8474](https://github.com/deepflowio/deepflow/pull/8474) by [lzf575](https://github.com/lzf575)
 * feat: agent - eBPF Support python unwind [#8407](https://github.com/deepflowio/deepflow/pull/8407) by [rvql](https://github.com/rvql)
@@ -532,6 +538,7 @@
 * perf: improve parsing RequestResource from http.url of OTel data [#7172](https://github.com/deepflowio/deepflow/pull/7172) by [lzf575](https://github.com/lzf575)
 
 #### Documentation
+* docs: update agent config doc [#8660](https://github.com/deepflowio/deepflow/pull/8660) by [sharang](https://github.com/sharang)
 * docs: polish compression config [#7701](https://github.com/deepflowio/deepflow/pull/7701) by [sharang](https://github.com/sharang)
 * docs: agent correct the description of inputs.ebpf.socket.tunning [#7664](https://github.com/deepflowio/deepflow/pull/7664) by [TomatoMr](https://github.com/TomatoMr)
 * docs: rename opentemetry to opentelemetry [#7245](https://github.com/deepflowio/deepflow/pull/7245) by [lzf575](https://github.com/lzf575)

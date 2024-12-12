@@ -8,6 +8,11 @@
 ### <a id="main"></a>DeepFlow release main
 
 #### Bug Fix
+* fix: modify log level [#8690](https://github.com/deepflowio/deepflow/pull/8690) by [yuanchaoa](https://github.com/yuanchaoa)
+* fix: query percentile to min/max time [#8685](https://github.com/deepflowio/deepflow/pull/8685) by [taloric](https://github.com/taloric)
+* fix: agent group api responses invalid int value [#8681](https://github.com/deepflowio/deepflow/pull/8681) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
+* fix: invalid src_interface [#8680](https://github.com/deepflowio/deepflow/pull/8680) by [yuanchaoa](https://github.com/yuanchaoa)
+* fix: Modify the range of the pcp value [#8678](https://github.com/deepflowio/deepflow/pull/8678) by [yuanchaoa](https://github.com/yuanchaoa)
 * fix: panic when prepare write failed [#8523](https://github.com/deepflowio/deepflow/pull/8523) by [lzf575](https://github.com/lzf575)
 * fix: panic when app service tag write failed [#8521](https://github.com/deepflowio/deepflow/pull/8521) by [lzf575](https://github.com/lzf575)
 * fix: Python uprobe not registered for symbols in main executable [#8515](https://github.com/deepflowio/deepflow/pull/8515) by [rvql](https://github.com/rvql)
@@ -241,6 +246,8 @@
 * Fix prometheus data cannot be labeled with universal tags，if slow-decoder is used. [#7100](https://github.com/deepflowio/deepflow/pull/7100)
 
 #### NEW FEATURE
+* feat: querier optimization group [#8688](https://github.com/deepflowio/deepflow/pull/8688) by [xiaochaoren1](https://github.com/xiaochaoren1)
+* feat: agent - eBPF Optimize data push logic (#8653) [#8684](https://github.com/deepflowio/deepflow/pull/8684) by [yinjiping](https://github.com/yinjiping)
 * feature: supports agent cmd api using agent.proto [#8513](https://github.com/deepflowio/deepflow/pull/8513) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feat: the role field adds the values local and rest [#8474](https://github.com/deepflowio/deepflow/pull/8474) by [lzf575](https://github.com/lzf575)
 * feat: agent - eBPF Support python unwind [#8407](https://github.com/deepflowio/deepflow/pull/8407) by [rvql](https://github.com/rvql)

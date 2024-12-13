@@ -11,6 +11,8 @@
 * feat: CK’s username and password support the use of special characters [#7229](https://github.com/deepflowio/deepflow/pull/7119)
 
 #### Bug Fix
+* fix: recorder fails to clean 10w data at one time [#8707](https://github.com/deepflowio/deepflow/pull/8707) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
+* fix: agent - eBPF Correct the maximum data push delay [#8704](https://github.com/deepflowio/deepflow/pull/8704) by [yinjiping](https://github.com/yinjiping)
 * fix: panic when prepare write failed [#8524](https://github.com/deepflowio/deepflow/pull/8524) by [lzf575](https://github.com/lzf575)
 * fix: agent - eBPF Kernels below v5.2 cannot retrieve IO events [#8511](https://github.com/deepflowio/deepflow/pull/8511) by [yinjiping](https://github.com/yinjiping)
 * fix: mongo log was missing the request content [#8478](https://github.com/deepflowio/deepflow/pull/8478) by [yuanchaoa](https://github.com/yuanchaoa)
@@ -162,6 +164,7 @@
 **[Changelog for v6.5](https://www.deepflow.io/docs/release-notes/release-6.5-ce)**<br/>
 
 #### NEW FEATURE
+* feat: gets by page when refreshing recorder cache [#8712](https://github.com/deepflowio/deepflow/pull/8712) by [ZhengYa-0110](https://github.com/ZhengYa-0110)
 * feat: the role field adds the values local and rest [#8465](https://github.com/deepflowio/deepflow/pull/8465) by [lzf575](https://github.com/lzf575)
 * feat: single-endpoints db support storing packet where the tap_side i… [#8463](https://github.com/deepflowio/deepflow/pull/8463) by [yuanchaoa](https://github.com/yuanchaoa)
 * feat: agent - eBPF Adapt to 4.19.90-2211.5.0.0178.22.uel20.x86_64 [#8460](https://github.com/deepflowio/deepflow/pull/8460) by [yinjiping](https://github.com/yinjiping)

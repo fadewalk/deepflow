@@ -8,6 +8,7 @@
 ### <a id="main"></a>DeepFlow release main
 
 #### Bug Fix
+* fix: stats countable leak [#8719](https://github.com/deepflowio/deepflow/pull/8719) by [lzf575](https://github.com/lzf575)
 * fix: panic when prepare write failed [#8523](https://github.com/deepflowio/deepflow/pull/8523) by [lzf575](https://github.com/lzf575)
 * fix: panic when app service tag write failed [#8521](https://github.com/deepflowio/deepflow/pull/8521) by [lzf575](https://github.com/lzf575)
 * fix: Python uprobe not registered for symbols in main executable [#8515](https://github.com/deepflowio/deepflow/pull/8515) by [rvql](https://github.com/rvql)
